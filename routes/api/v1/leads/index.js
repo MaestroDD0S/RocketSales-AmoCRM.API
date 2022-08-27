@@ -154,7 +154,7 @@ module.exports = async ( fastify ) =>
 
                 mergeLeadsWithRawContacts( leads, raw_contacts );
 
-            return { raw_contacts, rows: leads, pagination: { page: +raw_leads._page, limit: +limit } };
+            return { rows: leads, pagination: { page: +raw_leads._page, limit: +limit, next: !!raw_leads._links?.next } };
         }
     );
 }
