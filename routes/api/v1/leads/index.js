@@ -82,13 +82,58 @@ const mergeLeadsWithRawContacts = ( leads, raw_contacts ) =>
     );
 }
 
-module.exports = async ( fastify, opts ) =>
+const opts =
 {
-    fastify.get( '', async ( request, reply ) => 
+    schema: 
+    {
+        querystring: 
+        {
+            type: 'object',
+
+            properties: 
+            {
+                page: 
+                {
+                    type: 'integer',
+                    default: 0x1
+                },
+
+                limit: 
+                {
+                    type: 'integer',
+                    minimum: 1, 
+                    maximum: 50, 
+                },
+
+                query: 
+                {
+                    type: 'string',
+                    allOf: 
+                    [
+                        { transform: [ 'trim' ] },
+                        { minLength: 3   },
+                        { maxLength: 128 },
+                    ]
+                },
+            },
+        }
+    }
+}
+
+module.exports = async ( fastify ) =>
+{
+    fastify.get( '', opts, async ( request, reply ) => 
         {
             const { query: { query = '', page = 0x1, limit = 25 } } = request;
 
-                const raw_leads = await fastify.amoCRM.get( 'leads', { page, limit, with: 'contacts' } );
+                const search_params = { page, limit, with: 'contacts' };
+
+                if( query )
+                {
+                    search_params.query = query;
+                }
+
+                const raw_leads = await fastify.amoCRM.get( 'leads', search_params );
 
                 const users = await fastify.amoCRM.get( 'users', { limit: 250 }, 'users', ( data ) =>
                     {
@@ -109,7 +154,7 @@ module.exports = async ( fastify, opts ) =>
 
                 mergeLeadsWithRawContacts( leads, raw_contacts );
 
-            return { raw_contacts, rows: leads, pagination: { page: raw_leads._page, limit } };
+            return { raw_contacts, rows: leads, pagination: { page: +raw_leads._page, limit: +limit } };
         }
     );
 }
